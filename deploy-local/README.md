@@ -20,9 +20,15 @@ push. The audit always blocks an `origin` matching Apache
 `apache/guacamole-client` with `origin:UPSTREAM_ORIGIN_FORBIDDEN`; publish
 custom work from a repository you own or review the remote before pushing.
 
-Before replacing the checkout, preserve the local toolkit with
-`export-maintenance-bundle.ps1`; the Apache upstream repository does not contain
-this `deploy-local` directory.
+This fork tracks the `deploy-local` directory. The
+`export-maintenance-bundle.ps1` output preserves the deployment source layer
+(scripts, Compose, templates, and documentation) only; it does not preserve
+runtime state. Back up `runtime\ubuntu\ext4.vhdx`, VM qcow2 disks, UEFI/NVRAM
+and TPM state, ISO files, PostgreSQL volume/data and secrets separately on H:
+before replacing a checkout. Then clone the fork again from
+`https://github.com/TimTini/guacamole-client.git`. The Apache upstream
+repository remains the source project and attribution reference; it does not
+contain this fork's local deployment layer.
 
 This compose setup runs the three services recommended by Apache Guacamole:
 

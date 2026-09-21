@@ -66,7 +66,7 @@ H:\RemoteWorkspaces\guacamole-client\deploy-local.
 | start-local.ps1 | Đăng ký WSL từ ext4.vhdx, giữ WSL sống, bật systemd/Docker, gọi Guacamole và Ubuntu QEMU |
 | guacamole.ps1 | Tạo secret/schema lần đầu và quản lý Compose |
 | start-quick-tunnel.ps1 | Start/status/stop Cloudflare Quick Tunnel |
-| export-maintenance-bundle.ps1 | Đóng gói toolkit local để restore sau khi clone upstream |
+| export-maintenance-bundle.ps1 | Đóng gói script triển khai và tài liệu để restore sau khi clone lại fork này |
 | vm-windows11\windows11.ps1 | Tạo/chạy/dừng/status/đánh dấu hoàn tất Windows 11 |
 | vm-windows11\test-rdp.ps1 | Kiểm tra port forward và xác thực Windows RDP |
 | vm-demo\vm-demo.ps1 | Chuẩn bị/chạy/dừng Ubuntu VMware demo |
@@ -135,21 +135,26 @@ không tiếp tục import bằng file chưa kiểm tra.
 
 ### 4.3. Khôi phục toolkit và clone repository trên H:
 
-Repository origin hiện tại là Apache Guacamole upstream:
-https://github.com/apache/guacamole-client.git. Upstream không chứa toolkit
-deploy-local local của máy này; deploy-local đang là artifact local chưa track.
-Vì vậy không tạo runtime trước rồi clone vào đó, và không giả định clone
-upstream sẽ có script recovery/Windows VM.
+Repository public của deployment này là fork có track đầy đủ `deploy-local`:
+https://github.com/TimTini/guacamole-client.git. Apache Guacamole upstream
+https://github.com/apache/guacamole-client.git vẫn là remote nguồn để đối chiếu
+và giữ attribution, nhưng không phải nơi chứa lớp triển khai local này. Không
+tạo runtime trước rồi clone vào đó, và không dùng clone upstream làm checkout
+vận hành nếu chưa đưa các file `deploy-local` của fork vào.
 
 Nếu có bản sao đầy đủ của thư mục repository trên H:, khôi phục nguyên thư mục
 đó trước. Đây là cách giữ cả deploy-local, runtime, database disk và secrets.
-Nếu chỉ có Git upstream và maintenance bundle, clone vào thư mục hoàn toàn
-trống rồi giải nén bundle:
+Clone fork vào thư mục hoàn toàn trống:
 
     New-Item -ItemType Directory -Force H:\RemoteWorkspaces | Out-Null
-    git clone https://github.com/apache/guacamole-client.git H:\RemoteWorkspaces\guacamole-client
+    git clone https://github.com/TimTini/guacamole-client.git H:\RemoteWorkspaces\guacamole-client
     Set-Location H:\RemoteWorkspaces\guacamole-client
     git status --short
+    Test-Path .\deploy-local\recover-after-rollback.ps1
+
+Nếu checkout cần phục hồi từ maintenance bundle, giải nén bundle sau khi clone
+fork và kiểm tra lại file trước khi tạo runtime:
+
     $bundlePath = Get-ChildItem H:\Restore\guacamole-maintenance-*.zip | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if ($null -eq $bundlePath) { throw 'Copy a maintenance bundle to H:\Restore first.' }
     Expand-Archive -LiteralPath $bundlePath.FullName -DestinationPath H:\RemoteWorkspaces\guacamole-client -Force
@@ -291,8 +296,11 @@ thể chạy lại guacamole.ps1 start sau khi sửa prerequisite.
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\recover-after-rollback.ps1 status
 
 Entrypoint gọi WSL/disk, keepalive, systemd, Docker, Compose, Ubuntu QEMU,
-Quick Tunnel và Windows QEMU. Nếu asset tùy chọn chưa có, xử lý script riêng;
-không chuyển dữ liệu sang C:.
+Windows QEMU và sau đó Quick Tunnel. Đường dẫn `start` yêu cầu asset
+`runtime\cloudflared\cloudflared.exe`; nếu chỉ cần truy cập local, start
+`start-local.ps1` và các action libvirt riêng (`network`, `storage`,
+`connect-guacamole`, `start`) rồi bỏ qua `start-quick-tunnel.ps1`. Không chuyển
+dữ liệu sang C:.
 
 Kiểm tra phase: status phải cho thấy WSL systemd, Docker, Compose, QEMU và
 tunnel theo đúng asset đang có. Checkpoint: nếu start dừng giữa chừng, chạy
@@ -603,8 +611,9 @@ trên VM đã cài và không xóa runtime chỉ vì script cập nhật.
 
 Nếu git status còn thay đổi do máy hiện tại, dừng trước khi pull và lưu patch
 hoặc commit theo quy trình của repository. Không dùng git reset --hard để làm
-sạch; các file deploy-local chưa track và runtime bị ignore không được xem là
-được bảo vệ bởi Git.
+sạch; source trong deploy-local đã được track, còn runtime, deploy-local\data,
+deploy-local\secrets và generated state bị ignore nên không được xem là được
+bảo vệ bởi Git.
 
 ### Cloudflared
 
@@ -628,7 +637,7 @@ TPM state bằng file mới nếu mục tiêu là giữ nguyên VM.
 ## 12. Checklist bàn giao và smoke test
 
 1. Xác nhận cwd là H:\RemoteWorkspaces\guacamole-client\deploy-local.
-2. Đọc README.md, RUNBOOK.md và README của từng VM.
+2. Đọc root `..\README.md`, `README.md`, `RUNBOOK.md` và README của từng VM.
 3. Chạy git status --short và recovery status.
 4. Kiểm tra ext4.vhdx, secret, ISO, package và cloudflared.
 5. Xem Compose status, QEMU status, port và log.
