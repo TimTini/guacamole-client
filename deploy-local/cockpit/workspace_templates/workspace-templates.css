@@ -1,0 +1,133 @@
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+.container-cockpit {
+  max-width: 55rem;
+  padding: 2rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(9rem, 13rem) minmax(14rem, 28rem);
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+.form-grid input,
+.form-grid select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.form-actions,
+.status,
+.error,
+.result-links,
+.progress,
+.result-details {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  margin-top: 0.5rem;
+}
+
+.error {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-left: 0.25rem solid #cc0000;
+}
+
+.result-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.progress {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.progress li[data-status="ready"] {
+  color: #1b7f37;
+}
+
+.progress li[data-status="waiting"],
+.progress li[data-status="running"] {
+  font-weight: 600;
+}
+
+.result-details {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: 0.4rem 1rem;
+}
+
+.result-details dt {
+  font-weight: 600;
+}
+
+.template-list-section {
+  margin-top: 1.5rem;
+}
+
+.recent-section {
+  margin-top: 1.5rem;
+}
+
+#recent-list {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+#recent-list th,
+#recent-list td {
+  border-bottom: 1px solid currentColor;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+#recent-list td[data-status="ready"] {
+  color: #1b7f37;
+}
+
+#recent-list td[data-status="queued"],
+#recent-list td[data-status="running"] {
+  font-weight: 600;
+}
+
+.muted {
+  opacity: 0.75;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+#template-list {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+#template-list th,
+#template-list td {
+  border-bottom: 1px solid currentColor;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  white-space: nowrap;
+}

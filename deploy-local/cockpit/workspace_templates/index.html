@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workspace Templates</title>
+  <link rel="stylesheet" href="workspace-templates.css?v=source">
+</head>
+<body>
+  <main class="container-cockpit" id="workspace-page">
+    <h1>Workspace Templates</h1>
+    <p class="pf-v6-c-content--small">Create a workspace from a published golden template.</p>
+
+    <p id="stage" class="status" role="status" aria-live="polite">Loading templates and assignees...</p>
+    <ol id="progress" class="progress" aria-label="Workspace creation progress"></ol>
+    <div id="error" class="error" role="alert" hidden>
+      <strong id="error-code"></strong>
+      <span id="error-message"></span>
+    </div>
+
+    <section aria-labelledby="template-list-heading" class="template-list-section">
+      <h2 id="template-list-heading">Published templates</h2>
+      <p id="template-list-empty" class="muted">No immutable templates are available.</p>
+      <div class="table-scroll">
+        <table id="template-list" hidden>
+          <thead>
+            <tr>
+              <th scope="col">Version</th>
+              <th scope="col">Created</th>
+              <th scope="col">Size</th>
+              <th scope="col">Hash</th>
+              <th scope="col">Dependent clones</th>
+            </tr>
+          </thead>
+          <tbody id="template-list-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="recent-heading" class="recent-section">
+      <h2 id="recent-heading">Recent workspaces</h2>
+      <p id="recent-empty" class="muted">No workspace jobs have been recorded.</p>
+      <div class="table-scroll">
+        <table id="recent-list" hidden>
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Template</th>
+              <th scope="col">IP</th>
+              <th scope="col">Assignee</th>
+              <th scope="col">Status</th>
+              <th scope="col">Stage / result</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody id="recent-list-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <form id="create-form" class="form-grid">
+      <label for="name">Workspace name</label>
+      <input id="name" name="name" type="text" required maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{0,63}" autocomplete="off">
+
+      <label for="template">Template</label>
+      <select id="template" name="template" required>
+        <option value="" selected disabled>Loading templates...</option>
+      </select>
+
+      <label for="assignee">Assignee</label>
+      <select id="assignee" name="assignee" required>
+        <option value="" selected disabled>Loading users...</option>
+      </select>
+
+      <label for="memory-mib">Memory (MiB)</label>
+      <input id="memory-mib" name="memory-mib" type="number" min="1" max="1048576" value="4096" required>
+
+      <label for="vcpus">vCPUs</label>
+      <input id="vcpus" name="vcpus" type="number" min="1" max="256" value="2" required>
+
+      <div class="form-actions">
+        <button id="submit" type="submit" disabled>Create workspace</button>
+      </div>
+    </form>
+
+    <section id="result" aria-live="polite" hidden>
+      <h2>Workspace result</h2>
+      <p id="result-summary"></p>
+      <dl id="result-details" class="result-details"></dl>
+      <div id="result-links" class="result-links" hidden></div>
+    </section>
+  </main>
+  <script src="../base1/cockpit.js"></script>
+  <script src="workspace-templates.js?v=source"></script>
+</body>
+</html>

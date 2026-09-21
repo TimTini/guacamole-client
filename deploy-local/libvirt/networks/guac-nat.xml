@@ -1,0 +1,11 @@
+<network>
+  <name>guac-nat</name>
+  <bridge name='virbr-guac'/>
+  <forward mode='nat'/>
+  <ip address='192.168.250.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.250.100' end='192.168.250.254'/>
+      <host mac='52:54:00:11:11:01' name='windows11' ip='192.168.250.11'/>
+    </dhcp>
+  </ip>
+</network>

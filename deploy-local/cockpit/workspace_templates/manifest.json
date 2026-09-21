@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "requires": {
+    "cockpit": "314"
+  },
+  "menu": {
+    "workspace-templates": {
+      "label": "Workspace Templates",
+      "order": 55,
+      "path": "index.html"
+    }
+  }
+}

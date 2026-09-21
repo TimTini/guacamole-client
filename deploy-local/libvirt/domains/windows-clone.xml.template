@@ -1,0 +1,39 @@
+<domain type='kvm'>
+  <name>__CLONE_NAME__</name>
+  <uuid>__CLONE_UUID__</uuid>
+  <memory unit='MiB'>__CLONE_MEMORY_MIB__</memory>
+  <currentMemory unit='MiB'>__CLONE_MEMORY_MIB__</currentMemory>
+  <vcpu placement='static'>__CLONE_VCPUS__</vcpu>
+  <metadata>
+    <guacamole:workspace xmlns:guacamole='urn:guacamole:workspace' managed='true' schema='guacamole-workspace-v1' name='__CLONE_NAME__' template='__CLONE_TEMPLATE_VERSION__'/>
+  </metadata>
+  <os firmware='efi'>
+    <type arch='x86_64' machine='q35'>hvm</type>
+    <loader readonly='yes' secure='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE_4M.ms.fd</loader>
+    <nvram template='/usr/share/OVMF/OVMF_VARS_4M.ms.fd'>__CLONE_NVRAM_PATH__</nvram>
+  </os>
+  <features><acpi/><apic/></features>
+  <cpu mode='host-passthrough'/>
+  <clock offset='localtime'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+  <devices>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='__CLONE_DISK_PATH__'/>
+      <target dev='sda' bus='sata'/>
+    </disk>
+    <interface type='network'>
+      <mac address='__CLONE_MAC__'/>
+      <source network='guac-nat'/>
+      <model type='e1000e'/>
+    </interface>
+    <tpm model='tpm-tis'>
+      <backend type='emulator' version='2.0'/>
+    </tpm>
+    <graphics type='spice' autoport='yes' listen='127.0.0.1'/>
+    <video><model type='qxl' ram='65536' vram='65536' heads='1'/></video>
+    <console type='pty'/>
+  </devices>
+</domain>

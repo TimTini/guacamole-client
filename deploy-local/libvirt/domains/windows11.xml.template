@@ -1,0 +1,37 @@
+<domain type='kvm'>
+  <name>windows11</name>
+  <memory unit='MiB'>8192</memory>
+  <currentMemory unit='MiB'>8192</currentMemory>
+  <vcpu placement='static'>4</vcpu>
+  <os>
+    <type arch='x86_64' machine='q35'>hvm</type>
+    <loader readonly='yes' secure='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE_4M.ms.fd</loader>
+    <nvram template='/usr/share/OVMF/OVMF_VARS_4M.ms.fd'>__W11_NVRAM_PATH__</nvram>
+  </os>
+  <features><acpi/><apic/></features>
+  <cpu mode='host-passthrough'/>
+  <clock offset='localtime'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+  <devices>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='__W11_DISK_PATH__'/>
+      <target dev='sda' bus='sata'/>
+    </disk>
+    <interface type='network'>
+      <mac address='52:54:00:11:11:01'/>
+      <source network='guac-nat'/>
+      <model type='e1000e'/>
+    </interface>
+    <tpm model='tpm-tis'>
+      <backend type='external'>
+        <source type='unix' mode='connect' path='__W11_TPM_SOCKET__'/>
+      </backend>
+    </tpm>
+    <graphics type='spice' autoport='yes' listen='127.0.0.1'/>
+    <video><model type='qxl' ram='65536' vram='65536' heads='1'/></video>
+    <console type='pty'/>
+  </devices>
+</domain>

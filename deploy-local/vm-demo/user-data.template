@@ -1,0 +1,36 @@
+#cloud-config
+package_update: true
+package_reboot_if_required: false
+
+# The generated runtime user-data replaces this marker with a salted SHA-512
+# password hash. The clear-text password remains only in runtime/vm-demo.
+chpasswd:
+  expire: false
+  users:
+    - name: ubuntu
+      password: "__VM_PASSWORD_HASH__"
+      type: hash
+ssh_pwauth: false
+
+packages:
+  - xfce4
+  - xfce4-goodies
+  - xrdp
+  - xorgxrdp
+  - dbus-x11
+  - open-vm-tools
+
+runcmd:
+  - |
+    cat > /etc/xrdp/startwm.sh <<'EOF'
+    #!/bin/sh
+    unset DBUS_SESSION_BUS_ADDRESS
+    unset XDG_RUNTIME_DIR
+    exec startxfce4
+    EOF
+    chmod 0755 /etc/xrdp/startwm.sh
+  - [ sh, -c, "echo xfce4-session > /home/ubuntu/.xsession" ]
+  - [ chown, ubuntu:ubuntu, /home/ubuntu/.xsession ]
+  - [ adduser, xrdp, ssl-cert ]
+  - [ systemctl, enable, xrdp ]
+  - [ systemctl, restart, xrdp ]
