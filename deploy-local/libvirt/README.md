@@ -8,7 +8,7 @@ connection. The canonical network is
 
 The existing Windows 11 domain keeps its current disk, UEFI variables, and TPM
 state as one matched set. A dedicated systemd unit owns the `swtpm` process,
-using the existing H-backed state and a runtime Unix socket:
+using the existing local state and a runtime Unix socket:
 
 - disk: `/var/lib/guacamole-vm-windows11/windows11.qcow2`;
 - UEFI variables: `/var/lib/guacamole-vm-windows11/OVMF_VARS_4M.ms.fd`;
@@ -24,7 +24,7 @@ addresses, or installer media. The domain keeps the existing SATA disk bus and
 
 New VMs created by Cockpit use the `guacamole-vms` storage pool at
 `/var/lib/guacamole-vms` inside the WSL `ext4.vhdx`. Keep all VM disks,
-metadata, UEFI variables, TPM state, and logs inside the H-backed WSL
+metadata, UEFI variables, TPM state, and logs inside the WSL
 filesystem. Do not expose `virbr-guac` through a physical NIC or a public
 listener. Guacamole remains the end-user access boundary, while Cockpit is
 for local host administration.
@@ -46,7 +46,7 @@ wsl.exe -d Ubuntu-24.04 -u root -- virsh -c qemu:///system domblklist windows11
 ```
 
 Before defining or starting a domain, verify that the network, storage pool,
-disk, UEFI variables, and H-backed TPM state are present, that the dedicated
+disk, UEFI variables, and TPM state are present, that the dedicated
 systemd `swtpm` unit owns the runtime socket, and that no legacy QEMU owner is
 running. Define the network from `networks/guac-nat.xml` and render the domain
 from `domains/windows11.xml.template`; later automation replaces the three
@@ -66,8 +66,8 @@ access and permissions.
 The CLI fallback creates a shut-off domain and does not start the installer:
 
 ```powershell
-Get-FileHash H:\RemoteWorkspaces\guacamole-client\runtime\iso\Windows11_23H2_UEFI.iso -Algorithm SHA256
-.\new-libvirt-vm.ps1 -Name windows-work-02 -IsoPath H:\RemoteWorkspaces\guacamole-client\runtime\iso\Windows11_23H2_UEFI.iso -MemoryMiB 4096 -Vcpus 2 -DiskGiB 64
+Get-FileHash <REPO_ROOT>\runtime\iso\Windows11_23H2_UEFI.iso -Algorithm SHA256
+.\new-libvirt-vm.ps1 -Name windows-work-02 -IsoPath <REPO_ROOT>\runtime\iso\Windows11_23H2_UEFI.iso -MemoryMiB 4096 -Vcpus 2 -DiskGiB 64
 ```
 
 It allocates a unique MAC/IP, adds the DHCP reservation, and stores the qcow2

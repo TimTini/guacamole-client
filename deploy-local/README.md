@@ -8,7 +8,7 @@ and the shortest start path.
 
 The entire `runtime\` directory is local operational state and is ignored by
 Git. `deploy-local\data\` and `deploy-local\secrets\` are ignored as well.
-The H-backed `runtime\ubuntu\ext4.vhdx` contains the Docker database volume
+The local `runtime\ubuntu\ext4.vhdx` contains the Docker database volume
 and credentials inside WSL; it must never be published. The same rule applies
 to VM disks, ISO files, TPM/UEFI state, logs, backups, generated inventory,
 private keys, and environment files.
@@ -24,7 +24,7 @@ This fork tracks the `deploy-local` directory. The
 `export-maintenance-bundle.ps1` output preserves the deployment source layer
 (scripts, Compose, templates, and documentation) only; it does not preserve
 runtime state. Back up `runtime\ubuntu\ext4.vhdx`, VM qcow2 disks, UEFI/NVRAM
-and TPM state, ISO files, PostgreSQL volume/data and secrets separately on H:
+and TPM state, ISO files, PostgreSQL volume/data and secrets separately
 before replacing a checkout. Then clone the fork again from
 `https://github.com/TimTini/guacamole-client.git`. The Apache upstream
 repository remains the source project and attribution reference; it does not
@@ -44,9 +44,9 @@ The PostgreSQL data is stored in the named Docker volume
 `guacamole-local-postgres-data`. With this setup that volume lives inside the
 Ubuntu WSL filesystem, whose `ext4.vhdx` is kept at:
 
-`H:\RemoteWorkspaces\guacamole-client\runtime\ubuntu\ext4.vhdx`
+`runtime\ubuntu\ext4.vhdx`
 
-The generated schema and database secret remain under this directory on H:
+The generated schema and database secret remain under `deploy-local`:
 
 - `data/postgres-init/001-guacamole.sql` — the one-time schema script generated from the pinned Guacamole image;
 - `secrets/postgres_password.txt` — the generated database password.
@@ -54,9 +54,8 @@ The generated schema and database secret remain under this directory on H:
 The shared Windows `guacadmin` credential used by managed template clones is a
 separate root-only file at
 `/var/lib/guacamole-workspace/secrets/windows11_guacadmin_password`. This is a
-Linux path inside the Ubuntu ext4 VHDX at
-`H:\RemoteWorkspaces\guacamole-client\runtime\ubuntu\ext4.vhdx`, so it remains
-physically H-backed and is included in VHDX backup/rollback handling. It is not
+Linux path inside the Ubuntu ext4 VHDX at `runtime\ubuntu\ext4.vhdx`, so it is
+included when that VHDX is backed up. It is not
 a `/mnt/h` DrvFs path and is not part of the inventory, job status, source
 bundle, or maintenance ZIP. The installer creates and verifies its parent as
 `root:root` `0700` and refuses to publish if the directory is not a regular
@@ -73,18 +72,6 @@ secure stdin channel may pipe it to
 helper over stdin and is never a command argument or JSON value. Do not put the
 password in a command line, inventory, log, or documentation.
 
-The retained legacy `wtest` row (connection 14) has a separate, read-only
-ownership proof. After the installed release has been published and the secret
-initialized, the only adoption command is:
-
-```powershell
-wsl.exe -d Ubuntu-24.04 -u root -- /usr/local/libexec/guacamole-workspace-helper adopt-guacamole-connection --name wtest --connection-id 14 --json
-```
-
-It refuses a different name or ID, inventory identity conflicts, a second
-same-name connection, hostname/protocol/assignee/admin-permission mismatches,
-or an existing workflow attempt marker.
-
 The web port is bound only to `127.0.0.1:8080`. PostgreSQL and guacd have no
 host ports. Services use the normal Compose bridge network, which allows
 Guacamole to connect to VMs or other reachable hosts outside the Compose
@@ -99,9 +86,9 @@ the Quick Tunnel. The same file accepts `start`, `stop`, or `status` for
 automation and returns the recovery script's exit code:
 
 ```cmd
-H:\RemoteWorkspaces\guacamole-client\START-REMOTE.cmd start
-H:\RemoteWorkspaces\guacamole-client\START-REMOTE.cmd status
-H:\RemoteWorkspaces\guacamole-client\START-REMOTE.cmd stop
+START-REMOTE.cmd start
+START-REMOTE.cmd status
+START-REMOTE.cmd stop
 ```
 
 The older `deploy-local\START-REMOTE.cmd` path remains as a compatibility
@@ -112,13 +99,13 @@ prints the local Guacamole and Cockpit URLs; the temporary Quick Tunnel URL is
 shown by the start output or the status action.
 
 The `start` action calls `recover-after-rollback.ps1 start`, which re-registers
-`runtime\ubuntu\ext4.vhdx` from H: when `Ubuntu-24.04` is missing, then starts
+`runtime\ubuntu\ext4.vhdx` when `Ubuntu-24.04` is missing, then starts
 Docker/Guacamole, libvirt/Cockpit, the `windows11` domain, and the Quick Tunnel.
 
 Run the recovery-safe entrypoint from PowerShell:
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local
+Set-Location <REPO_ROOT>\deploy-local
 .\recover-after-rollback.ps1 start
 ```
 
@@ -155,9 +142,9 @@ When a temporary external URL is needed, place the repo-local binary at
 ```
 
 The script proxies only `http://127.0.0.1:8080`, keeps `cloudflared.exe`
-hidden after PowerShell exits, and writes its PID and logs under `runtime` on
-H:. It prints the generated `trycloudflare.com` URL when available. Stop it
-with `.\start-quick-tunnel.ps1 stop`; no binary is installed globally or on C:.
+hidden after PowerShell exits, and writes its PID and logs under `runtime`.
+It prints the generated `trycloudflare.com` URL when available. Stop it with
+`.\start-quick-tunnel.ps1 stop`; no global installation is required.
 
 ## Status and stop
 
@@ -286,33 +273,33 @@ or another user's connection. Before retiring a template, confirm that
 Convert a clone to a full independent disk with a planned maintenance action
 and verify the new disk hash before deleting its old backing relationship.
 
-## Recovery after a C: rollback
+## Recovery after WSL registration or host tooling loss
 
-The WSL disk image is on H:, so a C: rollback should not remove the Docker
-volume or the files under this directory. Docker images may need to be pulled
-again after the WSL registration or Docker installation is restored.
+The runtime VHDX contains the WSL filesystem and Docker volume. Docker images
+may need to be pulled again after the WSL registration or Docker installation
+is restored.
 
 1. Confirm that this file still exists:
 
-   `H:\RemoteWorkspaces\guacamole-client\runtime\ubuntu\ext4.vhdx`
+   `runtime\ubuntu\ext4.vhdx`
 
 2. Run the same entrypoint. It checks the registration and only imports the
    existing disk when `Ubuntu-24.04` is missing:
 
    ```powershell
-   Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local
+   Set-Location <REPO_ROOT>\deploy-local
    .\recover-after-rollback.ps1 start
    ```
 
 If the WSL distribution is listed but Docker is missing, reinstall Docker and
 Compose inside that same distribution. Do not delete or recreate the existing
-`ext4.vhdx`, Docker volume, qcow2, UEFI variables, TPM state, or H: secret file.
+`ext4.vhdx`, Docker volume, qcow2, UEFI variables, TPM state, or secret file.
 The normal entrypoint deliberately does not call the legacy Windows QEMU script;
 after the cutover marker, `qemu:///system` is the only Windows 11 owner.
 
 If the named database volume exists but `secrets/postgres_password.txt` is
 missing, the script stops instead of generating a new password that would not
-match the existing database. Restore the secret file from the H: backup, then
+match the existing database. Restore the secret file from backup, then
 retry.
 
 ## Sources

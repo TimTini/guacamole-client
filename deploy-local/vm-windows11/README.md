@@ -1,9 +1,9 @@
 # Windows 11 QEMU/KVM VM
 
 This VM is separate from `vm-demo`. Its UEFI variables, TPM state, installer
-answer ISO, and logs are under `runtime\vm-windows11` on H:. The writable
+answer ISO, and logs are under `runtime\vm-windows11`. The writable
 100 GiB disk is inside `/var/lib/guacamole-vm-windows11` in the WSL
-`ext4.vhdx`, which is itself stored at `runtime\ubuntu\ext4.vhdx` on H:. The
+`ext4.vhdx`, which is itself stored at `runtime\ubuntu\ext4.vhdx`. The
 Windows 11 ISO is read from `runtime\iso\Windows11_23H2_UEFI.iso`.
 
 The VM uses 4 vCPUs, 8 GiB RAM, a sparse 100 GiB qcow2 disk, UEFI Secure Boot
@@ -24,7 +24,7 @@ unit have been stopped and undefined.
 Run from PowerShell:
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local\vm-windows11
+Set-Location <REPO_ROOT>\deploy-local\vm-windows11
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows11.ps1 start
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows11.ps1 status
 ```
@@ -43,7 +43,7 @@ only selects the edition; it does not activate Windows.
 
 The generated Windows administrator password is stored only in:
 
-`H:\RemoteWorkspaces\guacamole-client\deploy-local\secrets\windows11_password.txt`
+`deploy-local\secrets\windows11_password.txt`
 
 The script restricts this file and the generated answer media to the current
 Windows user, SYSTEM, and local Administrators. Do not put the password in
@@ -99,7 +99,7 @@ The approved migration is phase based and keeps the qcow2, UEFI variables, and
 existing TPM state together:
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local
+Set-Location <REPO_ROOT>\deploy-local
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\migrate-windows11-to-libvirt.ps1 preflight
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\migrate-windows11-to-libvirt.ps1 backup
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\migrate-windows11-to-libvirt.ps1 define

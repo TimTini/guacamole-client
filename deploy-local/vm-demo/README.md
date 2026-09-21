@@ -7,7 +7,7 @@ address that Guacamole can use for an RDP connection.
 
 All generated VM files stay under:
 
-`H:\RemoteWorkspaces\guacamole-client\runtime\vm-demo`
+`runtime\vm-demo`
 
 This includes the VMDK, seed ISO, rendered cloud-init user-data, VMX file, and
 random `vm-password.txt`. The runtime directory is ignored by Git. The source
@@ -20,20 +20,20 @@ locally when entering the Ubuntu RDP connection credentials.
 
 ## Prerequisites
 
-- VMware Workstation with `H:\VMware\VMware Workstation\vmrun.exe`;
+- VMware Workstation with a valid `vmrun.exe` path;
 - Ubuntu `24.04` WSL distribution with `qemu-img`, `cloud-localds`, and
   `openssl`;
 - a working bridged VMware network and DHCP on the LAN;
 - the verified `ubuntu-24.04-cloud.img` already in `runtime\vm-demo`.
 
-The script never writes to `H:\VMs`.
+The script writes VM state only under the repository `runtime\vm-demo` path.
 
 ## Prepare and run
 
 Run from PowerShell:
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local\vm-demo
+Set-Location <REPO_ROOT>\deploy-local\vm-demo
 .\vm-demo.ps1 prepare
 ```
 
@@ -55,8 +55,8 @@ to install XFCE and xrdp.
 Get the guest IP after cloud-init and `open-vm-tools` finish:
 
 ```powershell
-& 'H:\VMware\VMware Workstation\vmrun.exe' -T ws getGuestIPAddress `
-  'H:\RemoteWorkspaces\guacamole-client\runtime\vm-demo\ubuntu-24.04-guacamole-demo.vmx' -wait
+& '<VMWARE_INSTALL>\vmrun.exe' -T ws getGuestIPAddress `
+  '<REPO_ROOT>\runtime\vm-demo\ubuntu-24.04-guacamole-demo.vmx' -wait
 ```
 
 In Guacamole, create an RDP connection with:
@@ -64,7 +64,7 @@ In Guacamole, create an RDP connection with:
 - Hostname: the guest IP returned above;
 - Port: `3389`;
 - Username: `ubuntu`;
-- Password: the contents of `H:\RemoteWorkspaces\guacamole-client\runtime\vm-demo\vm-password.txt`.
+- Password: the contents of `runtime\vm-demo\vm-password.txt`.
 
 After xrdp is ready, verify the forwarded RDP credentials without displaying
 the password:

@@ -1,7 +1,7 @@
 # QEMU/KVM fallback
 
 This is the fallback for the Ubuntu desktop VM when VMware Workstation cannot
-start its VMX runtime after a Windows rollback. It uses QEMU/KVM inside the
+start its VMX runtime. It uses QEMU/KVM inside the
 `Ubuntu-24.04` WSL distribution and leaves the existing VMware VMDK/VMX files
 untouched.
 
@@ -9,13 +9,12 @@ The QEMU overlay is created inside the Ubuntu WSL ext4 filesystem at:
 
 `/var/lib/guacamole-vm-demo/ubuntu-24.04-guacamole-qemu.qcow2`
 
-That ext4 filesystem is the H:-backed disk image:
+That ext4 filesystem is stored in the deployment runtime:
 
-`H:\RemoteWorkspaces\guacamole-client\runtime\ubuntu\ext4.vhdx`
+`runtime\ubuntu\ext4.vhdx`
 
 Keeping the writable overlay there avoids QEMU write amplification through
-`/mnt/h` DrvFS. The source cloud image and seed ISO remain read-only inputs on
-H:.
+`/mnt/h` DrvFS. The source cloud image and seed ISO remain read-only inputs.
 
 The source cloud image, NoCloud seed ISO, rendered user-data, and random
 password are the existing files from this directory. The overlay is sparse and
@@ -38,7 +37,7 @@ service, so the process is managed independently of the PowerShell terminal.
 Run from PowerShell; the Windows `qemu-system-x86_64` command is not required:
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local\vm-demo
+Set-Location <REPO_ROOT>\deploy-local\vm-demo
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\qemu-demo.ps1 start
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\qemu-demo.ps1 status
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\qemu-demo.ps1 stop
@@ -65,7 +64,7 @@ connection in Guacamole with:
 - Port: `3390`;
 - Username: `ubuntu`;
 - Password: the contents of
-  `H:\RemoteWorkspaces\guacamole-client\runtime\vm-demo\vm-password.txt`.
+  `runtime\vm-demo\vm-password.txt`.
 
 If the Compose network uses a different host gateway, inspect it inside WSL:
 
@@ -88,10 +87,8 @@ prints only a sanitized result token.
 
 ## Recovery and limitations
 
-- The VM overlay and QEMU systemd unit live inside Ubuntu WSL; the overlay is
-  physically retained by the H:-backed `ext4.vhdx`. The source image, seed ISO,
-  password, and logs remain on H:. After a C: rollback, restore/register the
-  existing WSL `ext4.vhdx` on H: before using this script.
+- The VM overlay and QEMU systemd unit live inside Ubuntu WSL. Back up the WSL
+  `ext4.vhdx`, source image, seed ISO and generated runtime state together.
 - The first boot needs apt network access. Wait for cloud-init to finish before
   trying RDP; inspect `qemu-console.log` if the VM does not respond.
 - Verify the overlay location after recovery with:

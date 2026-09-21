@@ -1,14 +1,14 @@
 # Guacamole local deployment runbook
 
-Tài liệu này mô tả môi trường Guacamole hiện tại trên Windows, với mọi dữ liệu
-lâu dài ở ổ H:. Mục tiêu là để agent khác có thể cài lại từ máy gần như trống,
-vận hành, phục hồi sau rollback, cập nhật và xử lý lỗi bằng lệnh có kiểm chứng.
+Tài liệu này mô tả cách cài đặt và vận hành Guacamole cùng Windows workspaces
+trên Windows/WSL2. Mục tiêu là để có thể cài từ máy gần như trống, vận hành,
+phục hồi, cập nhật và xử lý lỗi bằng các bước có kiểm chứng.
 
 ## 1. Nguyên tắc bắt buộc
 
-- Repository là H:\RemoteWorkspaces\guacamole-client.
-- C: có thể bị RollBack Rx khôi phục mỗi ngày. Không đặt database, secret, ISO,
-  image, disk VM hoặc log quan trọng trên C:.
+- Các script hiện dùng compatibility layout
+  `H:\RemoteWorkspaces\guacamole-client`. Đây là giới hạn của phiên bản hiện
+  tại, không phải yêu cầu của Guacamole, Cockpit hay libvirt.
 - Không chạy docker compose down -v, không xóa Docker volume, không xóa
   runtime\ubuntu\ext4.vhdx, và không sinh secret mới khi database hoặc VM cũ
   còn tồn tại.
@@ -18,7 +18,7 @@ vận hành, phục hồi sau rollback, cập nhật và xử lý lỗi bằng l
 - Windows 11 generic Pro key trong answer file chỉ chọn edition; nó không
   activate Windows.
 
-## 2. Kiến trúc hiện tại
+## 2. Kiến trúc triển khai
 
     Browser ngoài máy
             |
@@ -133,7 +133,7 @@ Giữ rootfs tar trên H: cho tới khi import vào repo và boot thành công.
 Checkpoint: nếu export hoặc unregister lỗi, dừng ở đây; không tạo repo runtime và
 không tiếp tục import bằng file chưa kiểm tra.
 
-### 4.3. Khôi phục toolkit và clone repository trên H:
+### 4.3. Clone repository và khôi phục toolkit
 
 Repository public của deployment này là fork có track đầy đủ `deploy-local`:
 https://github.com/TimTini/guacamole-client.git. Apache Guacamole upstream
@@ -142,8 +142,8 @@ và giữ attribution, nhưng không phải nơi chứa lớp triển khai local
 tạo runtime trước rồi clone vào đó, và không dùng clone upstream làm checkout
 vận hành nếu chưa đưa các file `deploy-local` của fork vào.
 
-Nếu có bản sao đầy đủ của thư mục repository trên H:, khôi phục nguyên thư mục
-đó trước. Đây là cách giữ cả deploy-local, runtime, database disk và secrets.
+Nếu có bản sao đầy đủ của deployment, khôi phục nguyên thư mục đó trước để giữ
+runtime, database disk và secrets.
 Clone fork vào thư mục hoàn toàn trống:
 
     New-Item -ItemType Directory -Force H:\RemoteWorkspaces | Out-Null
@@ -166,8 +166,8 @@ export-maintenance-bundle.ps1 ở phần 10. Bundle chỉ chứa script, compose
 template và tài liệu; ISO, runtime, database, data và secret phải khôi phục
 riêng từ backup H:.
 
-Không clone vào C:. Kiểm tra phase: `deploy-local\recover-after-rollback.ps1`
-phải tồn tại trước khi sang bước runtime. Checkpoint: nếu clone hỏng, chỉ xóa
+Kiểm tra phase: `deploy-local\recover-after-rollback.ps1` phải tồn tại trước
+khi sang bước runtime. Checkpoint: nếu clone hỏng, chỉ xóa
 thư mục clone chưa có runtime; không đụng runtime hoặc secret của bản đang chạy.
 
 ### 4.4. Import Ubuntu WSL vào runtime trên H:
@@ -252,7 +252,7 @@ hoặc index 6 là edition khác, dừng và cập nhật answer index có kiể
 Checkpoint: giữ nguyên ISO và hash đã ghi. Không sửa install-finished.marker,
 qcow2 hoặc Autounattend để ép chạy với ISO khác.
 
-Windows VM hiện tại: 4 vCPU, 8 GiB RAM, sparse qcow2 virtual size 100 GiB,
+Profile mặc định của script: 4 vCPU, 8 GiB RAM, sparse qcow2 virtual size 100 GiB,
 UEFI OVMF Secure Boot, software TPM 2.0, e1000e NIC, VNC 5901, RDP
 3391 -> 3389. Disk qcow2 nằm trong /var/lib/guacamole-vm-windows11 bên trong
 ext4.vhdx.
@@ -353,14 +353,14 @@ Windows RDP:
 - Username: guacadmin
 - Username/password: initialize the canonical root-only secret at
   `/var/lib/guacamole-workspace/secrets/windows11_guacadmin_password` inside
-  the H-backed Ubuntu ext4 VHDX with `initialize-windows-auth.ps1`; managed sync
+  the Ubuntu ext4 VHDX with `initialize-windows-auth.ps1`; managed sync
   writes them only to the connection parameter table.
 
 The installer verifies that `/var/lib/guacamole-workspace/secrets` is a regular
 directory reported as `root:root:0700`. This directory is inside
 `H:\RemoteWorkspaces\guacamole-client\runtime\ubuntu\ext4.vhdx`; keeping the
-secret in that POSIX filesystem preserves root ownership and modes while
-remaining H-backed and rollback-safe. A `/mnt/h` DrvFs path is never used for
+secret in that POSIX filesystem preserves root-only ownership and modes. A
+`/mnt/h` DrvFs path is never used for
 the credential. If the directory reports another owner, mode, or type,
 installation stops before release publication and the password must remain
 uninitialized.
@@ -391,7 +391,7 @@ remote sau khi tạo connection.
 
 Ubuntu demo là VM riêng, không phải Windows VM. VMware mode cần:
 
-- VMware Workstation và `H:\VMware\VMware Workstation\vmrun.exe`;
+- VMware Workstation và đường dẫn hợp lệ tới `vmrun.exe`;
 - source image tại `runtime\vm-demo\ubuntu-24.04-cloud.img`;
 - bridged network và DHCP nếu cần IP LAN;
 - trong WSL: `qemu-img`, `cloud-localds` và `openssl`.
@@ -409,15 +409,15 @@ Chuẩn bị và chạy VMware:
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-demo.ps1 prepare
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-demo.ps1 start
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-demo.ps1 status
-    & 'H:\VMware\VMware Workstation\vmrun.exe' -T ws getGuestIPAddress H:\RemoteWorkspaces\guacamole-client\runtime\vm-demo\ubuntu-24.04-guacamole-demo.vmx -wait
+    & '<VMWARE_INSTALL>\vmrun.exe' -T ws getGuestIPAddress '<REPO_ROOT>\runtime\vm-demo\ubuntu-24.04-guacamole-demo.vmx' -wait
 
-VMware mode tạo VMDK, NoCloud seed, VMX và password trong runtime H:. Không
-ghi vào H:\VMs. Sau khi cloud-init cài XFCE/xrdp xong, dùng connection RDP host
+VMware mode tạo VMDK, NoCloud seed, VMX và password trong `runtime\vm-demo`.
+Sau khi cloud-init cài XFCE/xrdp xong, dùng connection RDP host
 IP LAN, port 3389, user ubuntu và password trong vm-password.txt. Test:
 
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test-rdp.ps1
 
-Nếu VMware không chạy được sau rollback, dùng QEMU fallback; fallback giữ
+Nếu VMware không chạy được, dùng QEMU fallback; fallback giữ
 overlay trong WSL ext4 và forward RDP port 3390:
 
     Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local\vm-demo
@@ -480,16 +480,16 @@ Log:
 3390, 3391 và 5901 chỉ có listener khi VM tương ứng chạy. 8080 chỉ cần cho
 Guacamole local.
 
-## 8. Phục hồi sau C: rollback
+## 8. Phục hồi WSL và dịch vụ
 
-Không xóa hoặc tạo lại dữ liệu trên H:. Kiểm tra:
+Không xóa hoặc tạo lại runtime đang có. Kiểm tra:
 
     Test-Path H:\RemoteWorkspaces\guacamole-client\runtime\ubuntu\ext4.vhdx
     Test-Path H:\RemoteWorkspaces\guacamole-client\runtime\iso\Windows11_23H2_UEFI.iso
     Test-Path H:\RemoteWorkspaces\guacamole-client\deploy-local\secrets\postgres_password.txt
     wsl.exe -d Ubuntu-24.04 -u root -- stat -c '%U:%G:%a:%F' /var/lib/guacamole-workspace/secrets
 
-Sau rollback:
+Chạy entrypoint phục hồi:
 
     Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\recover-after-rollback.ps1 start
@@ -787,22 +787,10 @@ JSON, progress, logs, reports, maintenance bundles, and argv. The helper loads
 them into a transaction-local temporary table through COPY stdin so the
 password is not part of SQL text.
 
-Connection 14 (`wtest`) is not broad-claimed by normal sync or repair because
-it predates the workflow marker. After the release and secret initialization,
-run the explicit audited adoption command only after its read-only proof has
-passed:
-
-    wsl.exe -d Ubuntu-24.04 -u root -- /usr/local/libexec/guacamole-workspace-helper adopt-guacamole-connection --name wtest --connection-id 14 --json
-
-The command validates the canonical inventory record and assignee, exact
-connection identity/name/protocol/hostname/IP, complete `guacadmin`
-permissions, absence of a conflicting same-name row, and absence of an
-attempt marker. Marker and credentials are then written in one transaction.
-
 The selected user or group receives exactly `READ`; `guacadmin` receives
 `READ`, `UPDATE`, `DELETE`, and `ADMINISTER`. A user sees only assigned
 connections. The shared Windows `guacadmin` credential is initialized only
-through the root-only H-backed secret file and is written to the managed
+through the root-only secret file and is written to the managed
 connection parameter table during sync. It is never placed in a script,
 inventory, job status, logs, a report, a maintenance bundle, or a command
 argument.
@@ -858,21 +846,21 @@ Use these safe actions for helper outcomes:
 | `SYNC_COMMIT_UNKNOWN` / `SYNC_OWNERSHIP_UNAVAILABLE` | Inspect the clone's `syncAttemptId`, owned marker, and connection identity using the read-only helper | Retain the clone in `sync-failed`, run `sync --all --what-if`, and let the ownership check decide compensation; never delete by name alone |
 | `ROLLBACK_FAILED` | Read the rollback ledger, domain state, DHCP XML, and inventory record | Stop automated retries; retain the repairable artifacts and repair only the resources named by the ledger |
 | `LOCK_BUSY` | Check whether another helper process owns `/run/lock/guacamole-workspace-helper.lock` | Wait for the other operation to finish; do not remove the lock file while a process may hold it |
-| `TPM_*` / `SOURCE_TPM_INVALID` | Inspect the dedicated systemd unit, socket, and H-backed state directory | Do not initialize or delete TPM state; fix the owner/service and re-run read-only preflight |
+| `TPM_*` / `SOURCE_TPM_INVALID` | Inspect the dedicated systemd unit, socket, and state directory | Do not initialize or delete TPM state; fix the owner/service and re-run read-only preflight |
 
 The helper rollback ledger is LIFO and contains only resources created by the
 current attempt. It must never remove `windows11`, a template, an unrelated
 domain, or a pre-existing Guacamole row. If WSL registration is lost, verify
 `runtime\ubuntu\ext4.vhdx`, run `recover-after-rollback.ps1 start`, and use
 `wsl.exe --import-in-place` only when the distribution is absent. Do not
-unregister or recreate the existing H-backed disk, Docker volume, database,
+unregister or recreate the existing runtime disk, Docker volume, database,
 VM disk, UEFI variables, TPM state, or secret file.
 
 ## Final topology and verification
 
 ```text
 Windows host
-└── WSL2 Ubuntu-24.04 on H:\...\runtime\ubuntu\ext4.vhdx
+└── WSL2 Ubuntu-24.04 in runtime\ubuntu\ext4.vhdx
     ├── Docker: Guacamole / guacd / PostgreSQL -> 127.0.0.1:8080
     ├── Cockpit + libvirt qemu:///system -> 127.0.0.1:9090 only
     └── guac-nat 192.168.250.0/24 -> windows11 192.168.250.11:3389
@@ -892,7 +880,7 @@ Before any public commit, treat the complete `runtime\` tree and
 `deploy-local\data\` as ignored operational state. The `deploy-local\secrets\`
 tree and every password, private key, environment file, VM disk, ISO, TPM/UEFI
 state file, log, backup, archive, database dump, generated inventory, and
-Python cache are also excluded from publication. The H-backed
+Python cache are also excluded from publication. The local
 `runtime\ubuntu\ext4.vhdx` contains the WSL Docker database volume and
 credentials; never publish or attach it to a commit.
 

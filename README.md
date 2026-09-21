@@ -1,6 +1,6 @@
 # Guacamole Client: Windows remote workspaces
 
-Đây là fork public của [Apache Guacamole](https://github.com/apache/guacamole-client), kèm bộ triển khai local để chạy workspace Windows 11 từ một máy Windows. Mục tiêu là self-host remote desktop, phục hồi được sau rollback và tạo workspace mới từ template.
+Đây là fork public của [Apache Guacamole](https://github.com/apache/guacamole-client), kèm bộ triển khai self-host để chạy và cấp phát workspace Windows 11 từ một máy Windows.
 
 Mã Guacamole upstream vẫn nằm trong các module Maven gốc. Lớp triển khai cho môi trường này nằm trong [`deploy-local/`](deploy-local/): script PowerShell, Compose, libvirt, Cockpit **Workspace Templates** và runbook vận hành.
 
@@ -15,9 +15,8 @@ File [`README`](README) không có phần mở rộng vẫn là hướng dẫn b
 
 Windows chạy WSL2 với Ubuntu 24.04. Ubuntu chạy Docker Compose cho Guacamole,
 guacd và PostgreSQL; QEMU/KVM + libvirt chạy các VM; Cockpit Machines quản trị
-VM; Guacamole cung cấp web UI và quyền RDP. Dữ liệu lâu dài nằm trên ổ `H:` để
-C: có thể được RollBack Rx khôi phục mà không làm mất database, WSL disk hoặc
-VM state.
+VM; Guacamole cung cấp web UI, xác thực và phân quyền RDP. Dữ liệu vận hành
+được tách khỏi source Git trong thư mục `runtime\`.
 
 ```text
 Browser -> 127.0.0.1:8080/guacamole/ -> guacd -> RDP -> Windows/Ubuntu VM
@@ -25,7 +24,7 @@ Browser -> 127.0.0.1:8080/guacamole/ -> guacd -> RDP -> Windows/Ubuntu VM
                       +-> PostgreSQL
 
 Cockpit https://127.0.0.1:9090 -> libvirt -> QEMU/KVM -> VM
-Ubuntu-24.04 WSL2 -> Docker, libvirt, state trong runtime/ubuntu/ext4.vhdx trên H:
+Ubuntu-24.04 WSL2 -> Docker, libvirt và dữ liệu local trong runtime/
 Cloudflare Quick Tunnel (tùy chọn) -> chỉ proxy Guacamole localhost
 ```
 
@@ -34,12 +33,12 @@ Thành phần chính:
 - `guacamole/guacamole:1.6.0`, `guacamole/guacd:1.6.0` và `postgres:16-alpine`;
 - QEMU/KVM, libvirt, network riêng `guac-nat`, DHCP reservation và RDP route;
 - Cockpit Machines và trang **Workspace Templates**;
-- WSL `runtime\ubuntu\ext4.vhdx` trên `H:` chứa Docker volume và Linux state.
+- WSL `runtime\ubuntu\ext4.vhdx` chứa Docker volume và Linux state.
 
 ## Tính năng
 
 - Chạy Guacamole local trên Windows qua WSL2 và Docker Compose.
-- Giữ PostgreSQL trong WSL ext4 VHDX trên `H:` để phục hồi sau rollback.
+- Lưu PostgreSQL trong WSL ext4 VHDX, tách khỏi source Git.
 - Quản lý VM Windows 11 và Ubuntu demo qua libvirt/Cockpit.
 - Tạo template read-only theo phiên bản, clone với UUID, MAC, NVRAM, TPM và overlay riêng.
 - Tạo workspace trong Cockpit, chọn template, đặt tên và gán Guacamole user/group.
@@ -47,11 +46,11 @@ Thành phần chính:
 
 ## Chạy deployment đã có
 
-Phần này dành cho máy đã có `runtime\ubuntu\ext4.vhdx` cùng VM/secret trên `H:`.
+Phần này dành cho deployment đã có `runtime\ubuntu\ext4.vhdx`, VM và secret.
 Cài mới từ máy gần như trống xem [clean install trong RUNBOOK](deploy-local/RUNBOOK.md).
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client
+Set-Location <REPO_ROOT>
 .\START-REMOTE.cmd start
 .\START-REMOTE.cmd status
 .\START-REMOTE.cmd stop
@@ -63,7 +62,7 @@ truy cập local và chưa có cloudflared, hãy start các thành phần riêng
 Quick Tunnel:
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local
+Set-Location <REPO_ROOT>\deploy-local
 .\start-local.ps1 -Action start
 .\libvirt.ps1 -Action network
 .\libvirt.ps1 -Action storage
@@ -74,7 +73,7 @@ Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local
 Entrypoint PowerShell tương đương:
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local
+Set-Location <REPO_ROOT>\deploy-local
 .\recover-after-rollback.ps1 start
 .\recover-after-rollback.ps1 status
 .\recover-after-rollback.ps1 stop
@@ -98,8 +97,7 @@ cho recovery, maintenance và troubleshooting.
 
 [RUNBOOK.md](deploy-local/RUNBOOK.md) mô tả toàn bộ
 đường dẫn cài mới: bật WSL2/Virtual Machine Platform, kiểm tra `/dev/kvm`, clone
-fork vào `H:\RemoteWorkspaces\guacamole-client`, tạo hoặc khôi phục Ubuntu WSL
-trên H:, cài Docker/QEMU/libvirt/Cockpit, cung cấp ISO Windows 11 và kiểm tra
+fork, chuẩn bị Ubuntu WSL, cài Docker/QEMU/libvirt/Cockpit, cung cấp ISO Windows 11 và kiểm tra
 Guacamole/RDP. Không unregister hoặc import đè `ext4.vhdx` đang được sử dụng.
 
 ## Workspace Templates
@@ -118,12 +116,12 @@ trong [RUNBOOK](deploy-local/RUNBOOK.md#golden-template-operation-and-recovery-c
 CLI fallback:
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local
+Set-Location <REPO_ROOT>\deploy-local
 .\create-windows-template.ps1 -Source windows11 -Version windows11-v1
 .\clone-windows-vm.ps1 -Name windows-work-02 -AssignUser demo -TemplateVersion windows11-v1
 ```
 
-Golden template hiện tại nằm local trong WSL tại `/var/lib/guacamole-templates`;
+Golden template của mỗi deployment nằm local trong WSL tại `/var/lib/guacamole-templates`;
 nó không nằm trong GitHub và không được đưa vào public release.
 
 ## Public boundary và licensing
@@ -144,7 +142,7 @@ connection description hoặc URL công khai.
 Trước commit/push, stage theo allowlist và chạy:
 
 ```powershell
-Set-Location H:\RemoteWorkspaces\guacamole-client
+Set-Location <REPO_ROOT>
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\public-release-audit.ps1
 ```
 
