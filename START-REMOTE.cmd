@@ -31,7 +31,7 @@ echo.
 echo ================================================
 echo   Guacamole: quan ly toan bo stack local
 echo ================================================
-echo   1. Khoi dong tat ca
+echo   1. Khoi dong stack (khong tu dong bat VM)
 echo   2. Dung tat ca
 echo   3. Xem trang thai
 echo   4. Thoat
@@ -77,7 +77,7 @@ if not exist "%RECOVERY_SCRIPT%" (
 )
 
 echo.
-if /I "%~1"=="start" echo Dang khoi dong WSL, Docker, Guacamole, libvirt, Cockpit, Windows 11 va Quick Tunnel...
+if /I "%~1"=="start" echo Dang khoi dong WSL, Docker, Guacamole, libvirt, Cockpit va Quick Tunnel (khong tu dong bat VM)...
 if /I "%~1"=="stop" echo Dang dung WSL, Docker, Guacamole, libvirt, Windows 11 va Quick Tunnel...
 if /I "%~1"=="status" echo Dang doc trang thai toan bo stack...
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%RECOVERY_SCRIPT%" -Action "%~1"

@@ -57,9 +57,9 @@ Set-Location <REPO_ROOT>
 ```
 
 `START-REMOTE.cmd start` là đường dẫn whole-stack và luôn gọi Quick Tunnel;
-đường dẫn này yêu cầu có `runtime\cloudflared\cloudflared.exe`. Nếu chỉ cần
-truy cập local và chưa có cloudflared, hãy start các thành phần riêng rồi bỏ qua
-Quick Tunnel:
+đường dẫn này yêu cầu có `runtime\cloudflared\cloudflared.exe`. Lệnh này không
+tự bật Windows 11 hoặc Ubuntu demo. Nếu chỉ cần truy cập local và chưa có
+cloudflared, hãy start các thành phần riêng rồi bỏ qua Quick Tunnel:
 
 ```powershell
 Set-Location <REPO_ROOT>\deploy-local
@@ -67,7 +67,20 @@ Set-Location <REPO_ROOT>\deploy-local
 .\libvirt.ps1 -Action network
 .\libvirt.ps1 -Action storage
 .\libvirt.ps1 -Action connect-guacamole
+```
+
+Các lệnh start ở trên chỉ dựng dịch vụ, network, storage và kết nối
+Guacamole; mặc định không tự bật Windows 11 hoặc Ubuntu demo. Khi cần dùng VM,
+bật thủ công Windows 11 qua Cockpit hoặc chạy:
+
+```powershell
 .\libvirt.ps1 -Action start
+```
+
+Ubuntu demo có thể bật thủ công bằng:
+
+```powershell
+.\vm-demo\qemu-demo.ps1 -Action start
 ```
 
 Entrypoint PowerShell tương đương:
@@ -85,7 +98,7 @@ URL sau khi start:
 |---|---|
 | Guacamole | `http://127.0.0.1:8080/guacamole/` |
 | Cockpit Machines | `https://127.0.0.1:9090` |
-| Windows RDP | `192.168.250.x:3389`, mạng private qua Guacamole |
+| Windows RDP | `192.168.250.x:3389`, chỉ sẵn sàng sau khi bật VM, mạng private qua Guacamole |
 | Quick Tunnel | URL `trycloudflare.com` tạm thời do script in ra nếu có `cloudflared.exe` |
 
 Guacamole mặc định chỉ bind vào `127.0.0.1:8080`. Quick Tunnel chỉ proxy

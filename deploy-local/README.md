@@ -100,7 +100,8 @@ shown by the start output or the status action.
 
 The `start` action calls `recover-after-rollback.ps1 start`, which re-registers
 `runtime\ubuntu\ext4.vhdx` when `Ubuntu-24.04` is missing, then starts
-Docker/Guacamole, libvirt/Cockpit, the `windows11` domain, and the Quick Tunnel.
+Docker/Guacamole, libvirt/Cockpit, and the Quick Tunnel. It does not start the
+`windows11` domain or the Ubuntu demo VM; any VM already running stays running.
 
 Run the recovery-safe entrypoint from PowerShell:
 
@@ -112,9 +113,25 @@ Set-Location <REPO_ROOT>\deploy-local
 It registers `runtime\ubuntu\ext4.vhdx` in place when `Ubuntu-24.04` is
 missing, waits for systemd, starts Docker and Compose, ensures the
 `guac-nat` network and `guacamole-vms` pool, installs the Docker-to-libvirt
-route, starts the persistent `windows11` domain through `qemu:///system`, and
-starts the Quick Tunnel. The operation is idempotent and reuses the existing
-WSL state, containers, database volume, qcow2, UEFI variables, and TPM state.
+route, and starts the Quick Tunnel. The operation is idempotent and reuses the
+existing WSL state, containers, database volume, qcow2, UEFI variables, and
+TPM state.
+
+Start a VM only when you need it. The Windows 11 libvirt domain can be started
+from Cockpit or with:
+
+```powershell
+Set-Location <REPO_ROOT>\deploy-local
+.\libvirt.ps1 -Action start
+```
+
+The optional Ubuntu demo VM can be started with:
+
+```powershell
+.\vm-demo\qemu-demo.ps1 -Action start
+```
+
+The `status` and `stop` actions still inspect and stop manually started VMs.
 
 The first start pulls the images, creates the local secret, generates the
 PostgreSQL schema, creates the ext4-backed database volume, and starts the

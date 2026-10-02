@@ -63,7 +63,7 @@ H:\RemoteWorkspaces\guacamole-client\deploy-local.
 |---|---|
 | recover-after-rollback.ps1 | Entrypoint chuẩn cho start/status/stop toàn bộ stack |
 | ..\START-REMOTE.cmd | Double-click để mở menu start/stop/status cho toàn bộ stack |
-| start-local.ps1 | Đăng ký WSL từ ext4.vhdx, giữ WSL sống, bật systemd/Docker, gọi Guacamole và Ubuntu QEMU |
+| start-local.ps1 | Đăng ký WSL từ ext4.vhdx, giữ WSL sống, bật systemd/Docker và gọi Guacamole; không tự bật VM |
 | guacamole.ps1 | Tạo secret/schema lần đầu và quản lý Compose |
 | start-quick-tunnel.ps1 | Start/status/stop Cloudflare Quick Tunnel |
 | export-maintenance-bundle.ps1 | Đóng gói script triển khai và tài liệu để restore sau khi clone lại fork này |
@@ -295,16 +295,21 @@ thể chạy lại guacamole.ps1 start sau khi sửa prerequisite.
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\recover-after-rollback.ps1 start
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\recover-after-rollback.ps1 status
 
-Entrypoint gọi WSL/disk, keepalive, systemd, Docker, Compose, Ubuntu QEMU,
-Windows QEMU và sau đó Quick Tunnel. Đường dẫn `start` yêu cầu asset
-`runtime\cloudflared\cloudflared.exe`; nếu chỉ cần truy cập local, start
-`start-local.ps1` và các action libvirt riêng (`network`, `storage`,
-`connect-guacamole`, `start`) rồi bỏ qua `start-quick-tunnel.ps1`. Không chuyển
-dữ liệu sang C:.
+Entrypoint gọi WSL/disk, keepalive, systemd, Docker, Compose, network/storage
+libvirt, kết nối Guacamole và sau đó Quick Tunnel. Đường dẫn `start` yêu cầu
+asset `runtime\cloudflared\cloudflared.exe`; mặc định không tự bật Windows 11
+hoặc Ubuntu demo. Nếu chỉ cần truy cập local, start `start-local.ps1` và các
+action libvirt riêng (`network`, `storage`, `connect-guacamole`) rồi bỏ qua
+`start-quick-tunnel.ps1`. Khi cần VM, bật Windows 11 bằng Cockpit hoặc
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\libvirt.ps1 start`,
+và bật Ubuntu demo bằng
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-demo\qemu-demo.ps1 start`.
+Không chuyển dữ liệu sang C:.
 
-Kiểm tra phase: status phải cho thấy WSL systemd, Docker, Compose, QEMU và
-tunnel theo đúng asset đang có. Checkpoint: nếu start dừng giữa chừng, chạy
-status và log trước; không chạy dọn dẹp hoặc tạo lại volume.
+Kiểm tra phase: status phải cho thấy WSL systemd, Docker, Compose và tunnel
+theo đúng asset đang có; trạng thái VM được kiểm tra riêng khi bạn đã bật VM.
+Checkpoint: nếu start dừng giữa chừng, chạy status và log trước; không chạy
+dọn dẹp hoặc tạo lại volume.
 
 ### 4.11. Windows unattended lifecycle
 
@@ -441,8 +446,12 @@ Stop giữ database volume và disk. Kiểm tra riêng:
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\guacamole.ps1 status
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-quick-tunnel.ps1 status
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-windows11\windows11.ps1 status
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-windows11\test-rdp.ps1
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-demo\qemu-demo.ps1 status
+
+Chỉ kiểm tra RDP sau khi đã bật Windows 11 bằng Cockpit hoặc
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\libvirt.ps1 start`:
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-windows11\test-rdp.ps1
 
 Quick Tunnel:
 
@@ -650,8 +659,11 @@ Smoke test:
     Set-Location H:\RemoteWorkspaces\guacamole-client\deploy-local
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\recover-after-rollback.ps1 status
     Invoke-WebRequest http://127.0.0.1:8080/guacamole/ -UseBasicParsing | Select-Object StatusCode
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-windows11\test-rdp.ps1
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-quick-tunnel.ps1 status
+
+Nếu đã bật Windows 11 và cần kiểm tra RDP, chạy thêm:
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-windows11\test-rdp.ps1
 
 WIN11_RDP_AUTH_OK chứng minh port forward và credentials RDP đã xác thực. Để
 xác nhận trải nghiệm người dùng, vẫn phải mở connection trong Guacamole qua
