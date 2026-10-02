@@ -64,3 +64,11 @@ Make the default whole-stack `start` bring up Guacamole, networking, storage, Co
 - Full live sequence after the fix: `windows11` was `shut off`; `START-REMOTE.cmd start` returned exit code 0 on the second run and logged `LIBVIRT_TPM_READY`; socket test exited 0 while Windows was still off; direct `virsh -c qemu:///system start windows11` then exited 0 and `windows11` became `running`. The initial post-repair start completed its CMD child but the PowerShell output capture stayed open because cloudflared inherited the redirected handles; only that capture process was stopped. Tunnel was left running.
 - Final focused test set: `test-start-default-no-vm.ps1` covered both marker present and absent; `test-prepare-tpm.ps1` covered missing marker, owner mismatch, and ready owner; libvirt task-3 and task-4 validation, PowerShell parse, and whitespace check all passed. The tests do not run a full authenticated RDP login.
 - The Windows VM is running at this checkpoint. No authenticated RDP session was used. Source review, final audit, commit and push remain to finish.
+
+## Host restart and remote recovery, 2026-10-02
+
+- After the host restart, Guacamole/guacd/Postgres and `guac-nat` were running, but `virsh domstate windows11` returned `shut off`; `dominfo` confirmed autostart disabled. This matches the intended default manual VM startup.
+- Ran `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deploy-local\libvirt.ps1 -Action start`; it prepared network/storage/TPM and returned `LIBVIRT_START_OK`. `windows11` became `running`; its OS disk and FC Online data disk remained attached.
+- RDP was initially unavailable while Windows booted. After DHCP renewed `192.168.250.11`, `test-rdp.ps1 -HostName 192.168.250.11 -Port 3389` returned `WIN11_RDP_AUTH_OK`.
+- Ran idempotent `libvirt.ps1 -Action connect-guacamole`, which returned `LIBVIRT_GUACAMOLE_ROUTE_OK`. A TCP probe from the running Guacamole container to `192.168.250.11:3389` exited 0. Read-only Guacamole DB query confirmed connection `Windows 11` uses hostname `192.168.250.11` and port `3389`.
+- No GUI interaction or authenticated Guacamole browser session was performed. The user may retry the remote connection; the live VM was left running.
