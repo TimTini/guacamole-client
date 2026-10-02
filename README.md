@@ -69,9 +69,16 @@ Set-Location <REPO_ROOT>\deploy-local
 .\libvirt.ps1 -Action connect-guacamole
 ```
 
-Các lệnh start ở trên chỉ dựng dịch vụ, network, storage và kết nối
-Guacamole; mặc định không tự bật Windows 11 hoặc Ubuntu demo. Khi cần dùng VM,
-bật thủ công Windows 11 qua Cockpit hoặc chạy:
+Sau khi đã migration Windows 11 sang libvirt (có marker
+`runtime\vm-windows11\libvirt-cutover.marker`), chuẩn bị socket TPM để Cockpit
+có thể bật VM:
+
+```powershell
+.\libvirt.ps1 -Action prepare-tpm
+```
+
+Các lệnh trên không tự bật Windows 11 hoặc Ubuntu demo. Khi cần dùng VM, bật
+thủ công Windows 11 qua Cockpit hoặc chạy:
 
 ```powershell
 .\libvirt.ps1 -Action start

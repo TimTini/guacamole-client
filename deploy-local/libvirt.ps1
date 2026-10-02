@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('preflight', 'install', 'configure', 'cockpit-workspaces', 'network', 'storage', 'connect-guacamole', 'start', 'stop', 'status', 'backup', 'export')]
+    [ValidateSet('preflight', 'install', 'configure', 'cockpit-workspaces', 'network', 'storage', 'connect-guacamole', 'prepare-tpm', 'start', 'stop', 'status', 'backup', 'export')]
     [string]$Action = 'status',
 
     [string]$DomainName = 'windows11',
@@ -1198,17 +1198,20 @@ function Wait-ForLibvirtDomainState {
 }
 
 function Start-LibvirtTpmOwner {
+    if (-not (Test-Path -LiteralPath $CutoverMarkerPath -PathType Leaf)) {
+        throw "LIBVIRT_CUTOVER_MARKER_REQUIRED: '$CutoverMarkerPath' is absent; refusing to start the dedicated TPM owner."
+    }
     Invoke-LegacyOwnerGuard
     Invoke-WslCommand -Command "systemctl start '$TpmUnitName'" | Out-Null
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     do {
-        $socket = Invoke-WslCommand -Command "test -S '$TpmSocketPath'" -AllowFailure
-        if ($socket.ExitCode -eq 0) {
+        $evidence = Get-TpmOwnerEvidence
+        if ($evidence.DedicatedOwnerReady) {
             return
         }
         Start-Sleep -Milliseconds 500
     } while ([DateTime]::UtcNow -lt $deadline)
-    throw "LIBVIRT_TPM_SOCKET_TIMEOUT: '$TpmSocketPath' was not ready within $TimeoutSeconds seconds."
+    throw "LIBVIRT_TPM_OWNER_NOT_READY: '$TpmUnitName' did not own '$TpmSocketPath' within $TimeoutSeconds seconds; state=$($evidence.OwnerState)."
 }
 
 function Stop-LibvirtTpmOwner {
@@ -1663,6 +1666,7 @@ switch ($Action) {
     'network'            { Assert-WslAndHStorage; Invoke-LibvirtNetwork }
     'storage'            { Assert-WslAndHStorage; Invoke-LibvirtStorage }
     'connect-guacamole'  { Assert-WslAndHStorage; Invoke-ConnectGuacamole }
+    'prepare-tpm'        { Assert-WslAndHStorage; Start-LibvirtTpmOwner; Write-Host 'LIBVIRT_TPM_READY' }
     'start'              { Assert-WslAndHStorage; Invoke-LibvirtStart }
     'stop'               { Assert-WslAndHStorage; Invoke-LibvirtStop }
     'backup'             { Invoke-Backup }

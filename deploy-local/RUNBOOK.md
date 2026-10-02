@@ -296,11 +296,14 @@ thể chạy lại guacamole.ps1 start sau khi sửa prerequisite.
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\recover-after-rollback.ps1 status
 
 Entrypoint gọi WSL/disk, keepalive, systemd, Docker, Compose, network/storage
-libvirt, kết nối Guacamole và sau đó Quick Tunnel. Đường dẫn `start` yêu cầu
-asset `runtime\cloudflared\cloudflared.exe`; mặc định không tự bật Windows 11
-hoặc Ubuntu demo. Nếu chỉ cần truy cập local, start `start-local.ps1` và các
-action libvirt riêng (`network`, `storage`, `connect-guacamole`) rồi bỏ qua
-`start-quick-tunnel.ps1`. Khi cần VM, bật Windows 11 bằng Cockpit hoặc
+libvirt, kết nối Guacamole, chuẩn bị socket TPM cho Cockpit nếu đã migration
+Windows 11 sang libvirt và sau đó Quick
+Tunnel. Đường dẫn `start` yêu cầu asset `runtime\cloudflared\cloudflared.exe`;
+mặc định không tự bật Windows 11 hoặc Ubuntu demo. Nếu chỉ cần truy cập local,
+start `start-local.ps1` và các action libvirt riêng (`network`, `storage`,
+`connect-guacamole`) rồi bỏ qua `start-quick-tunnel.ps1`. Chỉ chạy
+`libvirt.ps1 prepare-tpm` nếu đã có marker cutover trong `runtime\vm-windows11`.
+Khi cần VM, bật Windows 11 bằng Cockpit hoặc
 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\libvirt.ps1 start`,
 và bật Ubuntu demo bằng
 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\vm-demo\qemu-demo.ps1 start`.

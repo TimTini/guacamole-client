@@ -17,6 +17,7 @@ function Assert-Calls {
 # Intercept child PowerShell calls so the real recovery entrypoint can run
 # without starting WSL, Docker, libvirt, any VM, or the tunnel.
 $global:guacStartTestCalls = @()
+$global:guacCutoverMarkerExists = $true
 function powershell.exe {
     $fileIndex = [array]::IndexOf($args, '-File')
     $actionIndex = [array]::IndexOf($args, '-Action')
@@ -26,6 +27,11 @@ function powershell.exe {
     $global:guacStartTestCalls += '{0}:{1}' -f (Split-Path -Leaf $args[$fileIndex + 1]), $args[$actionIndex + 1]
     $global:LASTEXITCODE = 0
 }
+function Test-Path {
+    param([string]$LiteralPath, [string]$PathType)
+    if ($LiteralPath -like '*libvirt-cutover.marker') { return $global:guacCutoverMarkerExists }
+    Microsoft.PowerShell.Management\Test-Path @PSBoundParameters
+}
 
 try {
     & $recoveryPath -Action start
@@ -34,9 +40,23 @@ try {
         'libvirt.ps1:network',
         'libvirt.ps1:storage',
         'libvirt.ps1:connect-guacamole',
+        'libvirt.ps1:prepare-tpm',
+        'start-quick-tunnel.ps1:start'
+    )
+
+    $global:guacCutoverMarkerExists = $false
+    $global:guacStartTestCalls = @()
+    & $recoveryPath -Action start
+    Assert-Calls -Name 'Pre-cutover recovery start' -Actual $global:guacStartTestCalls -Expected @(
+        'start-local.ps1:start',
+        'libvirt.ps1:network',
+        'libvirt.ps1:storage',
+        'libvirt.ps1:connect-guacamole',
         'start-quick-tunnel.ps1:start'
     )
 } finally {
+    Remove-Item Function:Test-Path -ErrorAction SilentlyContinue
+    Remove-Variable -Name guacCutoverMarkerExists -Scope Global -ErrorAction SilentlyContinue
     Remove-Variable -Name guacStartTestCalls -Scope Global -ErrorAction SilentlyContinue
 }
 

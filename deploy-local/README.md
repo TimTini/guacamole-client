@@ -100,8 +100,10 @@ shown by the start output or the status action.
 
 The `start` action calls `recover-after-rollback.ps1 start`, which re-registers
 `runtime\ubuntu\ext4.vhdx` when `Ubuntu-24.04` is missing, then starts
-Docker/Guacamole, libvirt/Cockpit, and the Quick Tunnel. It does not start the
-`windows11` domain or the Ubuntu demo VM; any VM already running stays running.
+Docker/Guacamole, libvirt/Cockpit, and the Quick Tunnel. After the Windows 11
+libvirt cutover marker exists, it also starts the dedicated Windows TPM service
+so Cockpit's Start action can use its socket. It does not start the `windows11`
+domain or the Ubuntu demo VM; any VM already running stays running.
 
 Run the recovery-safe entrypoint from PowerShell:
 
@@ -113,9 +115,9 @@ Set-Location <REPO_ROOT>\deploy-local
 It registers `runtime\ubuntu\ext4.vhdx` in place when `Ubuntu-24.04` is
 missing, waits for systemd, starts Docker and Compose, ensures the
 `guac-nat` network and `guacamole-vms` pool, installs the Docker-to-libvirt
-route, and starts the Quick Tunnel. The operation is idempotent and reuses the
-existing WSL state, containers, database volume, qcow2, UEFI variables, and
-TPM state.
+route, prepares the Windows TPM socket after libvirt cutover, and starts the Quick Tunnel. The
+operation is idempotent and reuses the existing WSL state, containers,
+database volume, qcow2, UEFI variables, and TPM state.
 
 Start a VM only when you need it. The Windows 11 libvirt domain can be started
 from Cockpit or with:

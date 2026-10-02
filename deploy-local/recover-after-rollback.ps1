@@ -13,6 +13,7 @@ $ErrorActionPreference = 'Stop'
 $StartScript = Join-Path $PSScriptRoot 'start-local.ps1'
 $TunnelScript = Join-Path $PSScriptRoot 'start-quick-tunnel.ps1'
 $LibvirtScript = Join-Path $PSScriptRoot 'libvirt.ps1'
+$CutoverMarkerPath = Join-Path $PSScriptRoot '..\runtime\vm-windows11\libvirt-cutover.marker'
 
 function Invoke-DeploymentScript {
     param(
@@ -43,7 +44,7 @@ function Invoke-LocalDeployment {
 
 function Invoke-LibvirtDeployment {
     param(
-        [Parameter(Mandatory)][ValidateSet('network', 'storage', 'connect-guacamole', 'start', 'status', 'stop')][string]$ScriptAction
+        [Parameter(Mandatory)][ValidateSet('network', 'storage', 'connect-guacamole', 'prepare-tpm', 'start', 'status', 'stop')][string]$ScriptAction
     )
 
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $LibvirtScript `
@@ -73,4 +74,7 @@ Invoke-LocalDeployment -ScriptAction 'start'
 Invoke-LibvirtDeployment -ScriptAction 'network'
 Invoke-LibvirtDeployment -ScriptAction 'storage'
 Invoke-LibvirtDeployment -ScriptAction 'connect-guacamole'
+if (Test-Path -LiteralPath $CutoverMarkerPath -PathType Leaf) {
+    Invoke-LibvirtDeployment -ScriptAction 'prepare-tpm'
+}
 Invoke-DeploymentScript -Path $TunnelScript -ScriptAction 'start'
